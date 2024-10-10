@@ -1,101 +1,96 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+import React, { useCallback, useState } from 'react';
+import ReactFlow, { ReactFlowProvider, addEdge, MiniMap, Controls, Background, Node, Edge, EdgeChange, NodeChange, Connection } from 'react-flow-renderer';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
-}
+// Nodes creation (with pos and css)
+const initialNodes: Node[] = [
+    { id: '1', data: { label: 'Node 1: console.log("Start")' }, position: { x: 100, y: 100 }, style: { background: '#E0E0E0' }},
+    { id: '2', data: { label: 'Node 2: console.log("Process 1")' }, position: { x: 300, y: 100 }, style: { background: '#E0E0E0' }},
+    { id: '3', data: { label: 'Node 3: console.log("Process 2")' }, position: { x: 500, y: 100 }, style: { background: '#E0E0E0' }},
+    { id: '4', data: { label: 'Node 4: console.log("End")' }, position: { x: 700, y: 100 }, style: { background: '#E0E0E0' }},
+];
+
+// Edges creation - links the nodes together
+const initialEdges: Edge[] = [
+  { id: 'e1-2', source: '1', target: '2', animated: true },
+  { id: 'e2-3', source: '2', target: '3', animated: true },
+  { id: 'e3-4', source: '3', target: '4', animated: true },
+].map(edge => ({ ...edge, animated: edge.animated ?? false }));
+
+const FlowPage = () => {
+    // Handling nodes and edges states
+    const [nodes, setNodes] = useState(initialNodes);
+    const [edges, setEdges] = useState(initialEdges);
+
+    // Function for movements or modificationn of nodes
+    const onNodesChange = useCallback((changes: NodeChange[]) => {
+      setNodes((nds) =>
+          nds.map((node) => {
+              const change = changes.find((c) => 'id' in c && c.id === node.id);
+              // Update nodes after modifications
+              return change ? { ...node, ...change } : node;
+          })
+      );
+  }, []); 
+   
+  // Function for addition, modification and deletion of edfges
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+        setEdges((eds) => changes.reduce((acc, change) => {
+            if (change.type === 'remove') {
+                // Delete the link
+                return acc.filter((edge) => edge.id !== change.id);
+            }
+            // Add or update link
+            return acc;
+        }, addEdge(changes[0] as Edge | Connection, eds as Edge[])));
+    },
+    []
+);
+    
+    // Export conf of nodes and edges to JSON
+    const handleExport = () => {
+        const flow = { nodes, edges }; // Object creation (contains nodes and edges)
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(flow));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "flow.json");
+        downloadAnchorNode.click(); // DL JSON file
+        downloadAnchorNode.remove();
+    };
+
+    // One by one exec
+    const executeFlow = async () => {
+        for (const node of nodes) {
+            // Yellow during exec
+            setNodes((nds) => nds.map((n) => n.id === node.id ? { ...n, style: { background: '#FFD700' } } : n));
+            console.log(node.data.label);
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 sec iinvterval
+            // Green after it's done
+            setNodes((nds) => nds.map((n) => n.id === node.id ? { ...n, style: { background: '#90EE90' } } : n));
+        }
+    };
+
+    return (
+        <ReactFlowProvider>
+            <div style={{ height: 500 }}>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    fitView
+                >
+                    <MiniMap /> 
+                    <Controls /> 
+                    <Background /> 
+                </ReactFlow>
+                <button onClick={handleExport}>Export as JSON</button>
+                <button onClick={executeFlow}>Execute Flow</button> 
+            </div>
+        </ReactFlowProvider>
+    );
+};
+
+export default FlowPage;
